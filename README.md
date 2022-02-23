@@ -1,7 +1,7 @@
 # RSA-Dashboard
 Encrypting / Decrypting files with RSA algorithm.
 
-Select source path for encryption.
+Select source and new directory path for encryption.
 
 Select new directory path for decryption.
 
