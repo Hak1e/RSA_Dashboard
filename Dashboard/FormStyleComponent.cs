@@ -24,7 +24,6 @@ namespace Dashboard
                 Sign();
             }
         }
-
         public enum FStyle // Набор стилей
         {
             None

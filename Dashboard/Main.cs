@@ -42,7 +42,6 @@ namespace Dashboard
 
         #endregion
 
-
         #region Ключи
         private void CreateKey()
         {
