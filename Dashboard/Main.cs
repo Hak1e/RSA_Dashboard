@@ -30,11 +30,11 @@ namespace Dashboard
         private string DecNewPath = string.Empty;
         private byte[] EncryptedData;
         private byte[] DecryptedData;
-        private byte[] data;
-        private string publicxml = "";
-        private string privatexml = "";
-        private string DividedPath = string.Empty;
-        private readonly int partSize = 112;
+        private byte[] Data;
+        private string Publicxml = "";
+        private string Privatexml = "";
+        private string DividedPath_Temp = string.Empty;
+        private readonly int PartSize = 112;
         private readonly int EncSize = 128;
         private string[] KeysArr = new string[2];
         private bool OperationCanceled = false;
@@ -48,19 +48,19 @@ namespace Dashboard
             try
             {
                 var RsaKey = new RSACryptoServiceProvider();
-                string publickey = RsaKey.ToXmlString(false);
-                string privatekey = RsaKey.ToXmlString(true);
+                string PublicKey = RsaKey.ToXmlString(false);
+                string PrivateKey = RsaKey.ToXmlString(true);
                 OperationCanceled = false;
                 if (KeysPath != string.Empty)
                 {
                     Directory.CreateDirectory(KeysPath);
                 }
-                if (KeysName != string.Empty) // создаёт ключи с названием папки
+                if (KeysName != string.Empty)
                 {
                     if (!File.Exists(KeysPath + $@"\{KeysName}_public.xml") && !File.Exists(KeysPath + $@"\{KeysName}_private.xml"))
                     {
-                        File.WriteAllText(KeysPath + $@"\{KeysName}_public.xml", publickey, Encoding.UTF8);
-                        File.WriteAllText(KeysPath + $@"\{KeysName}_private.xml", privatekey, Encoding.UTF8);
+                        File.WriteAllText(KeysPath + $@"\{KeysName}_public.xml", PublicKey, Encoding.UTF8);
+                        File.WriteAllText(KeysPath + $@"\{KeysName}_private.xml", PrivateKey, Encoding.UTF8);
                         PublicKey = $@"\{KeysName}_public.xml";
                         PrivatKey = $@"\{KeysName}_private.xml";
                     }
@@ -70,8 +70,8 @@ namespace Dashboard
                             MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                         if (Window == DialogResult.Yes)
                         {
-                            File.WriteAllText(KeysPath + $@"\{KeysName}_public.xml", publickey, Encoding.UTF8);
-                            File.WriteAllText(KeysPath + $@"\{KeysName}_private.xml", privatekey, Encoding.UTF8);
+                            File.WriteAllText(KeysPath + $@"\{KeysName}_public.xml", PublicKey, Encoding.UTF8);
+                            File.WriteAllText(KeysPath + $@"\{KeysName}_private.xml", PrivateKey, Encoding.UTF8);
                             PublicKey = $@"\{KeysName}_public.xml";
                             PrivatKey = $@"\{KeysName}_private.xml";
                         }
@@ -99,7 +99,7 @@ namespace Dashboard
         {
             try
             {
-                publicxml = File.ReadAllText(KeysPath + @"\" + PublicKey, Encoding.UTF8);
+                Publicxml = File.ReadAllText(KeysPath + @"\" + PublicKey, Encoding.UTF8);
             }
             catch (Exception ex)
             {
@@ -108,7 +108,7 @@ namespace Dashboard
             }
             try
             {
-                privatexml = File.ReadAllText(KeysPath + @"\" + PrivatKey, Encoding.UTF8);
+                Privatexml = File.ReadAllText(KeysPath + @"\" + PrivatKey, Encoding.UTF8);
             }
             catch (Exception ex)
             {
@@ -120,52 +120,52 @@ namespace Dashboard
         #endregion
 
         #region Кнопки путей
-        private void BtPathSourceDir_Click(object sender, EventArgs e) // путь к файлам для шифрования
+        private void BtPathSourceDir_Click(object sender, EventArgs e)
         {
-            var dialog = new CommonOpenFileDialog
+            var Dialog = new CommonOpenFileDialog
             {
                 IsFolderPicker = true,
                 InitialDirectory = @"C:\"
             };
-            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            if (Dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                SourcePath = dialog.FileName;
+                SourcePath = Dialog.FileName;
                 TbSourceDir.Text = SourcePath;
                 RtbLogs.Text += "Source directory selected successfully\n";
                 ChbSourceDir.Checked = true;
             }
         }
 
-        private void BtPathNewDir_Click(object sender, EventArgs e) // путь где зашифрованные файлы будут создаваться
+        private void BtPathNewDir_Click(object sender, EventArgs e)
         {
-            var dialog = new CommonOpenFileDialog
+            var Dialog = new CommonOpenFileDialog
             {
                 IsFolderPicker = true,
                 InitialDirectory = @"C:\"
             };
-            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            if (Dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                NewDirPath = dialog.FileName;
+                NewDirPath = Dialog.FileName;
                 KeysName = Path.GetFileName(NewDirPath);
                 TbNewDir.Text = NewDirPath;
                 RtbLogs.Text += "New directory selected successfully\n";
                 ChbNewDir.Checked = true;
-                KeysPath = dialog.FileName + @"\Keys";
+                KeysPath = Dialog.FileName + @"\Keys";
                 TbKeysDir.Text = KeysPath;
                 RtbLogs.Text += $"Keys folder will in {TbKeysDir.Text}\n";
-                DecNewPath = NewDirPath + @"\Decrypted"; // путь для расшифрованных файлов
+                DecNewPath = NewDirPath + @"\Decrypted";
             }
         }
 
-        private void BtPathKeys_Click(object sender, EventArgs e) // изменить путь для ключей
+        private void BtPathKeys_Click(object sender, EventArgs e)
         {
-            var dialog = new OpenFileDialog
+            var Dialog = new OpenFileDialog
             {
                 Multiselect = true
             };
-            if (dialog.ShowDialog() == DialogResult.OK)
+            if (Dialog.ShowDialog() == DialogResult.OK)
             {
-                KeysArr = dialog.FileNames;
+                KeysArr = Dialog.FileNames;
                 foreach (var key in KeysArr)
                 {
                     if (key.Contains("_public.xml")) PublicKey = Path.GetFileName(key);
@@ -177,41 +177,39 @@ namespace Dashboard
             }
         }
 
-
-
         #endregion
 
-        private void Division(FileInfo file1, string DirPath, int _partSize)
+        private void Division(FileInfo CurrentFile, string DirPath, int _PartSize)
         {
-            byte[] file = File.ReadAllBytes(DirPath + @"\" + file1.Name); // для разделения файла на части
-            int part = 1; // текущая часть файла
-            int position = 0;//текущая позиция в куске
-            DividedPath = NewDirPath + $@"\Divided"; // создание временной папки для разделённых файлов
-            DirectoryInfo di = Directory.CreateDirectory(DividedPath);
-            di.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
+            byte[] FullFile = File.ReadAllBytes(DirPath + @"\" + CurrentFile.Name);
+            int CurrentPart = 1;
+            int CurrentPosition = 0;
+            DividedPath_Temp = NewDirPath + $@"\Divided";
+            DirectoryInfo DirInfo = Directory.CreateDirectory(DividedPath_Temp);
+            DirInfo.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
             int LastFileSize;
-            for (int i = 0; i < file.Length; i += _partSize)
+            for (int CurrentSize = 0; CurrentSize < FullFile.Length; CurrentSize += _PartSize)
             {
-                byte[] partbytes = new byte[Math.Min(_partSize, file.Length - i)];
-                if (partbytes.Length < _partSize) LastFileSize = partbytes.Length;
-                for (int j = 0; j < partbytes.Length; j++)
+                byte[] PartBytes = new byte[Math.Min(_PartSize, FullFile.Length - CurrentSize)];
+                if (PartBytes.Length < _PartSize) LastFileSize = PartBytes.Length;
+                for (int Position = 0; Position < PartBytes.Length; Position++)
                 {
-                    partbytes[j] = file[position++];
+                    PartBytes[Position] = FullFile[CurrentPosition++];
                 }
-                File.WriteAllBytes(DividedPath + $@"\{file1.Name}_" + part + ".part", partbytes);
-                part++;
+                File.WriteAllBytes(DividedPath_Temp + $@"\{CurrentFile.Name}_" + CurrentPart + ".part", PartBytes);
+                CurrentPart++;
             }
         }
         
         private void Addition(string _NewDirPath, string _DividedPath)
         {
-            var filesInCurrentDirectory = new DirectoryInfo(_DividedPath);
-            FileInfo[] filesInDirectory = filesInCurrentDirectory.GetFiles();
+            var FilesInCurrentDirectory = new DirectoryInfo(_DividedPath);
+            FileInfo[] FilesInDirectory = FilesInCurrentDirectory.GetFiles();
             string StartName = string.Empty;
             long SummaryLength = 0;
-            int filesCount = filesInDirectory.Count();
+            int FilesCount = FilesInDirectory.Count();
 
-            foreach (var file in filesInDirectory)// посчитать общий размер разделённого файла
+            foreach (var file in FilesInDirectory)
             {
                 SummaryLength += file.Length;
             }
@@ -221,30 +219,28 @@ namespace Dashboard
                 return;
             }
 
-            foreach (var file in filesInDirectory)
+            foreach (var file in FilesInDirectory)
             {
                 if (file.Name.Contains("_1.part"))
                 {
-                    int test = file.Name.LastIndexOf("_1.part"); // поиск подстроки(_1.part)
-                    StartName = file.Name.Remove(test);
+                    StartName = file.Name.Remove(file.Name.LastIndexOf("_1.part"));
                     break;
                 }
             }
             try
             {
-                byte[] partbytes = new byte[SummaryLength]; // размер массива в сумме всех файлов
-                int counter = 0;
-                for (int fileNum = 1; fileNum <= filesCount; fileNum++)
+                byte[] PartBytes = new byte[SummaryLength];
+                int Position = 0;
+                for (int FileNum = 1; FileNum <= FilesCount; FileNum++)
                 {
-                    byte[] file1 = File.ReadAllBytes(_DividedPath + @"\" + $"{StartName}_" + fileNum + ".part");
-                    int size = file1.Length;
-                    for (int i = 0; i < size; i++, counter++) // записываем все байты части в массив
+                    byte[] file = File.ReadAllBytes(_DividedPath + @"\" + $"{StartName}_" + FileNum + ".part");
+                    int FileSize = file.Length;
+                    for (int PartPosition = 0; PartPosition < FileSize; PartPosition++, Position++)
                     {
-                        partbytes[counter] = file1[i];
+                        PartBytes[Position] = file[PartPosition];
                     }
                 }
-                // полученный массив записываем в 1 файл
-                File.WriteAllBytes(_NewDirPath + $@"\{StartName}", partbytes);
+                File.WriteAllBytes(_NewDirPath + $@"\{StartName}", PartBytes);
             }
             catch (Exception ex)
             {
@@ -254,61 +250,61 @@ namespace Dashboard
         }
         private async void BtEncrypt_Click(object sender, EventArgs e)
         {
-            if (ChbSourceDir.Checked == true && ChbNewDir.Checked == true) // выбрана папка с изначальными файлами и папка куда записывать зашифрованные файлы
+            if (ChbSourceDir.Checked == true && ChbNewDir.Checked == true)
             {
-                var rsa = new RSACryptoServiceProvider();
+                var RSA = new RSACryptoServiceProvider();
                 CreateKey();
                 if (OperationCanceled) return;
                 LoadKey();
-                if (publicxml.Length == 0)
+                if (Publicxml.Length == 0)
                 {
                     MessageBox.Show("Invalid public key");
                     return;
                 }
                 try
                 {
-                    rsa.FromXmlString(publicxml);
+                    RSA.FromXmlString(Publicxml);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show("Problems with RSA\n" + ex.Message);
                 }
 
-                var filesInCurrentDirectory = new DirectoryInfo(SourcePath);
-                FileInfo[] filesInDirectory = filesInCurrentDirectory.GetFiles();
+                var FilesInCurrentDirectory = new DirectoryInfo(SourcePath);
+                FileInfo[] FilesInDirectory = FilesInCurrentDirectory.GetFiles();
 
-                foreach (var file in filesInDirectory) // шифрация каждого файла в папке
+                foreach (var file in FilesInDirectory)
                 {
-                    data = new byte[partSize];
+                    Data = new byte[PartSize];
                     try
                     {
                         if (file.Length > 117)
                         {
-                            await Task.Run(() => Division(file, SourcePath, partSize));
-                            var filesInDividedDirectory = new DirectoryInfo(DividedPath);
-                            FileInfo[] filesInDivDir = filesInDividedDirectory.GetFiles();
-                            foreach (var DivFile in filesInDivDir) // шифрация всех файлов
+                            await Task.Run(() => Division(file, SourcePath, PartSize));
+                            var FilesInDividedDirectory = new DirectoryInfo(DividedPath_Temp);
+                            FileInfo[] FilesInDivDir = FilesInDividedDirectory.GetFiles();
+                            foreach (var DivFile in FilesInDivDir)
                             {
                                 await Task.Run(() =>
                                 {
-                                    data = File.ReadAllBytes(DividedPath + @"\" + DivFile.Name);
-                                    EncryptedData = rsa.Encrypt(data, false);
-                                    File.WriteAllBytes(DividedPath + @"\" + DivFile.Name, EncryptedData); // перезаписать этот файл
+                                    Data = File.ReadAllBytes(DividedPath_Temp + @"\" + DivFile.Name);
+                                    EncryptedData = RSA.Encrypt(Data, false);
+                                    File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, EncryptedData); 
                                 });
                             }
                             await Task.Run(() =>
                             {
-                                Addition(NewDirPath, DividedPath);
+                                Addition(NewDirPath, DividedPath_Temp);
                                 RtbLogs.Text += $"{file.Name} encrypted\n";
-                                Directory.Delete(DividedPath, true);
+                                Directory.Delete(DividedPath_Temp, true);
                             });
                         }
                         else
                         {
                             await Task.Run(() =>
                             {
-                                data = File.ReadAllBytes(SourcePath + @"\" + file.Name);
-                                EncryptedData = rsa.Encrypt(data, false);
+                                Data = File.ReadAllBytes(SourcePath + @"\" + file.Name);
+                                EncryptedData = RSA.Encrypt(Data, false);
                                 File.WriteAllBytes(NewDirPath + @"\" + file.Name, EncryptedData);
                                 RtbLogs.Text += $"{file.Name} encrypted\n";
                             });
@@ -332,65 +328,64 @@ namespace Dashboard
             if (ChbNewDir.Checked == true) 
             {
                 LoadKey();
-                if (privatexml.Length == 0)
+                if (Privatexml.Length == 0)
                 {
                     MessageBox.Show("Invalid private key\n");
                     return;
                 }
-                var rsa = new RSACryptoServiceProvider();
-                var filesInCurrentDirectory = new DirectoryInfo(NewDirPath);
+                var RSA = new RSACryptoServiceProvider();
+                var FilesInCurrentDirectory = new DirectoryInfo(NewDirPath);
                 if (!Directory.Exists(NewDirPath))
                 {
                     MessageBox.Show("New directory is not exist");
                     return;
                 }
-                FileInfo[] filesInDirectory = filesInCurrentDirectory.GetFiles();
+                FileInfo[] FilesInDirectory = FilesInCurrentDirectory.GetFiles();
 
                 try
                 {
-                    rsa.FromXmlString(privatexml);
+                    RSA.FromXmlString(Privatexml);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show("Problems with RSA\n" + ex.Message);
                 }
                   
-                foreach (var file in filesInDirectory) // расшифровка каждого файла в папке
+                foreach (var file in FilesInDirectory)
                 {
-                    data = new byte[EncSize];
+                    Data = new byte[EncSize];
                     try
                     {
                         if (file.Length > 128)
                         {
                             await Task.Run(() => Division(file, NewDirPath, EncSize));
-                            var filesInDividedDirectory = new DirectoryInfo(DividedPath);
-                            FileInfo[] filesInDivDir = filesInDividedDirectory.GetFiles();
-                            foreach (var DivFile in filesInDivDir)
+                            var FilesInDividedDirectory = new DirectoryInfo(DividedPath_Temp);
+                            FileInfo[] FilesInDivDir = FilesInDividedDirectory.GetFiles();
+                            foreach (var DivFile in FilesInDivDir)
                             {
 
                                 await Task.Run(() =>
                                 {
-                                    data = File.ReadAllBytes(DividedPath + @"\" + DivFile.Name);
-                                    DecryptedData = rsa.Decrypt(data, false);
-                                    File.WriteAllBytes(DividedPath + @"\" + DivFile.Name, DecryptedData); // перезаписать этот файл
+                                    Data = File.ReadAllBytes(DividedPath_Temp + @"\" + DivFile.Name);
+                                    DecryptedData = RSA.Decrypt(Data, false);
+                                    File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, DecryptedData);
                                 });
                             }
                             await Task.Run(() =>
                             {
-                                Directory.CreateDirectory(DecNewPath); // создать директорию для расшифрованных файлов
-                                Addition(DecNewPath, DividedPath);
+                                Directory.CreateDirectory(DecNewPath);
+                                Addition(DecNewPath, DividedPath_Temp);
                                 RtbLogs.Text += $"{file.Name} decrypted\n";
-                                Directory.Delete(DividedPath, true);
+                                Directory.Delete(DividedPath_Temp, true);
                             });
                         }
                         else
                         {
-                            // расшифровка и вывод в консоль
                             await Task.Run(() =>
                             {
-                                data = File.ReadAllBytes(NewDirPath + @"\" + file.Name);
-                                DecryptedData = rsa.Decrypt(data, false);
-                                Directory.CreateDirectory(DecNewPath); // создать директорию для расшифрованных файлов
+                                Data = File.ReadAllBytes(NewDirPath + @"\" + file.Name);
+                                DecryptedData = RSA.Decrypt(Data, false);
+                                Directory.CreateDirectory(DecNewPath);
                                 File.WriteAllBytes(DecNewPath + @"\" + file.Name, DecryptedData);
                                 RtbLogs.Text += $"{file.Name} decrypted\n";
                             });

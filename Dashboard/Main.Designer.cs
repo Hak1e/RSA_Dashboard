@@ -92,7 +92,7 @@ namespace Dashboard
             this.RtbLogs.Location = new System.Drawing.Point(12, 12);
             this.RtbLogs.Name = "RtbLogs";
             this.RtbLogs.ReadOnly = true;
-            this.RtbLogs.Size = new System.Drawing.Size(286, 200);
+            this.RtbLogs.Size = new System.Drawing.Size(286, 166);
             this.RtbLogs.TabIndex = 7;
             this.RtbLogs.Text = "";
             // 
