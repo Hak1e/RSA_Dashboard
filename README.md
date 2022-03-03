@@ -1,4 +1,4 @@
-# RSA-Dashboard
+# RSA Dashboard
 Encrypting / Decrypting files with RSA algorithm.
 
 Select source and new directory path for encryption.
