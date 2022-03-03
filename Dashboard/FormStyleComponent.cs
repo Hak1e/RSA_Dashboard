@@ -38,7 +38,7 @@ namespace Dashboard
         private readonly StringFormat SF = new();
         private readonly Font Font = new("Corbel", 15F, FontStyle.Regular);
         private Size IconSize = new(30, 30);
-        private bool MousePressed = false; // кнопка мыши нажата
+        private bool MousePressed = false;
         private Point clickPosition; // начальная позиция курсора в момент клика
         private Point moveStartPosition; // начальная позиция формы в момент клика
         private Rectangle rectBtnClose = new();

@@ -26,7 +26,7 @@ namespace Dashboard
         private string NewDirPath = string.Empty;
         private string KeysPath = string.Empty;
         private string PublicKey = string.Empty;
-        private string PrivatKey = string.Empty;
+        private string PrivateKey = string.Empty;
         private string DecNewPath = string.Empty;
         private byte[] EncryptedData;
         private byte[] DecryptedData;
@@ -34,7 +34,7 @@ namespace Dashboard
         private string Publicxml = "";
         private string Privatexml = "";
         private string DividedPath_Temp = string.Empty;
-        private readonly int PartSize = 112;
+        private readonly int partSize = 112;
         private readonly int EncSize = 128;
         private string[] KeysArr = new string[2];
         private bool OperationCanceled = false;
@@ -47,22 +47,33 @@ namespace Dashboard
         {
             try
             {
-                var RsaKey = new RSACryptoServiceProvider();
-                string PublicKey = RsaKey.ToXmlString(false);
-                string PrivateKey = RsaKey.ToXmlString(true);
+                var RSAKey = new RSACryptoServiceProvider();
+                string RSAPublicKey = RSAKey.ToXmlString(false);
+                string RSAPrivateKey = RSAKey.ToXmlString(true);
                 OperationCanceled = false;
+
                 if (KeysPath != string.Empty)
                 {
                     Directory.CreateDirectory(KeysPath);
                 }
                 if (KeysName != string.Empty)
                 {
+                    void GetKeysNameFromFolder()
+                    {
+                        PublicKey = $@"\{KeysName}_public.xml";
+                        PrivateKey = $@"\{KeysName}_private.xml";
+                    }
+
+                    void CreateKeysInFolder()
+                    {
+                        File.WriteAllText(KeysPath + $@"\{KeysName}_public.xml", RSAPublicKey, Encoding.UTF8);
+                        File.WriteAllText(KeysPath + $@"\{KeysName}_private.xml", RSAPrivateKey, Encoding.UTF8);
+                    }
+
                     if (!File.Exists(KeysPath + $@"\{KeysName}_public.xml") && !File.Exists(KeysPath + $@"\{KeysName}_private.xml"))
                     {
-                        File.WriteAllText(KeysPath + $@"\{KeysName}_public.xml", PublicKey, Encoding.UTF8);
-                        File.WriteAllText(KeysPath + $@"\{KeysName}_private.xml", PrivateKey, Encoding.UTF8);
-                        PublicKey = $@"\{KeysName}_public.xml";
-                        PrivatKey = $@"\{KeysName}_private.xml";
+                        CreateKeysInFolder();
+                        GetKeysNameFromFolder();
                     }
                     else
                     {
@@ -70,23 +81,20 @@ namespace Dashboard
                             MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                         if (Window == DialogResult.Yes)
                         {
-                            File.WriteAllText(KeysPath + $@"\{KeysName}_public.xml", PublicKey, Encoding.UTF8);
-                            File.WriteAllText(KeysPath + $@"\{KeysName}_private.xml", PrivateKey, Encoding.UTF8);
-                            PublicKey = $@"\{KeysName}_public.xml";
-                            PrivatKey = $@"\{KeysName}_private.xml";
+                            CreateKeysInFolder();
+                            GetKeysNameFromFolder();
                         }
                         else if(Window == DialogResult.No)
                         {
                             RtbLogs.Text += "Using previous keys\n";
-                            PublicKey = $@"\{KeysName}_public.xml";
-                            PrivatKey = $@"\{KeysName}_private.xml";
+                            GetKeysNameFromFolder();
                         }
                         else if(Window == DialogResult.Cancel)
                         {
                             OperationCanceled = true;
+                            RtbLogs.Text += "Operation canceled\n";
                         }
                     }
-                    
                 }
             }
             catch (Exception ex)
@@ -108,7 +116,7 @@ namespace Dashboard
             }
             try
             {
-                Privatexml = File.ReadAllText(KeysPath + @"\" + PrivatKey, Encoding.UTF8);
+                Privatexml = File.ReadAllText(KeysPath + @"\" + PrivateKey, Encoding.UTF8);
             }
             catch (Exception ex)
             {
@@ -131,7 +139,6 @@ namespace Dashboard
             {
                 SourcePath = Dialog.FileName;
                 TbSourceDir.Text = SourcePath;
-                RtbLogs.Text += "Source directory selected successfully\n";
                 ChbSourceDir.Checked = true;
             }
         }
@@ -148,11 +155,9 @@ namespace Dashboard
                 NewDirPath = Dialog.FileName;
                 KeysName = Path.GetFileName(NewDirPath);
                 TbNewDir.Text = NewDirPath;
-                RtbLogs.Text += "New directory selected successfully\n";
                 ChbNewDir.Checked = true;
                 KeysPath = Dialog.FileName + @"\Keys";
                 TbKeysDir.Text = KeysPath;
-                RtbLogs.Text += $"Keys folder will in {TbKeysDir.Text}\n";
                 DecNewPath = NewDirPath + @"\Decrypted";
             }
         }
@@ -166,37 +171,39 @@ namespace Dashboard
             if (Dialog.ShowDialog() == DialogResult.OK)
             {
                 KeysArr = Dialog.FileNames;
-                foreach (var key in KeysArr)
+                foreach (var Key in KeysArr) // List?
                 {
-                    if (key.Contains("_public.xml")) PublicKey = Path.GetFileName(key);
-                    else if (key.Contains("_private.xml")) PrivatKey = Path.GetFileName(key);
-                    KeysPath = Path.GetDirectoryName(key);
+                    if (Key.Contains("_public.xml")) PublicKey = Path.GetFileName(Key);
+                    else if (Key.Contains("_private.xml")) PrivateKey = Path.GetFileName(Key);
+                    KeysPath = Path.GetDirectoryName(Key);
                 }
                 TbKeysDir.Text = KeysPath;
-                RtbLogs.Text += $"Public key is {PublicKey}\nPrivate key is {PrivatKey}\n";
+                RtbLogs.Text += $"Public key is {PublicKey}\nPrivate key is {PrivateKey}\n";
             }
         }
 
         #endregion
 
-        private void Division(FileInfo CurrentFile, string DirPath, int _PartSize)
+        private void Division(FileInfo DividingFile, string DirPath, int _PartSize)
         {
-            byte[] FullFile = File.ReadAllBytes(DirPath + @"\" + CurrentFile.Name);
+            byte[] FullFile = File.ReadAllBytes(DirPath + @"\" + DividingFile.Name);
             int CurrentPart = 1;
             int CurrentPosition = 0;
+            int LastFileSize;
             DividedPath_Temp = NewDirPath + $@"\Divided";
             DirectoryInfo DirInfo = Directory.CreateDirectory(DividedPath_Temp);
-            DirInfo.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
-            int LastFileSize;
+            DirInfo.Attributes = FileAttributes.Directory | FileAttributes.Hidden;         
+
             for (int CurrentSize = 0; CurrentSize < FullFile.Length; CurrentSize += _PartSize)
             {
                 byte[] PartBytes = new byte[Math.Min(_PartSize, FullFile.Length - CurrentSize)];
                 if (PartBytes.Length < _PartSize) LastFileSize = PartBytes.Length;
-                for (int Position = 0; Position < PartBytes.Length; Position++)
+
+                for (int Position = 0; Position < PartBytes.Length; Position++) // записываем часть целого файла в новый файл
                 {
                     PartBytes[Position] = FullFile[CurrentPosition++];
                 }
-                File.WriteAllBytes(DividedPath_Temp + $@"\{CurrentFile.Name}_" + CurrentPart + ".part", PartBytes);
+                File.WriteAllBytes(DividedPath_Temp + $@"\{DividingFile.Name}_" + CurrentPart + ".part", PartBytes);
                 CurrentPart++;
             }
         }
@@ -235,7 +242,8 @@ namespace Dashboard
                 {
                     byte[] file = File.ReadAllBytes(_DividedPath + @"\" + $"{StartName}_" + FileNum + ".part");
                     int FileSize = file.Length;
-                    for (int PartPosition = 0; PartPosition < FileSize; PartPosition++, Position++)
+
+                    for (int PartPosition = 0; PartPosition < FileSize; PartPosition++, Position++) // записываем все байты части в массив
                     {
                         PartBytes[Position] = file[PartPosition];
                     }
@@ -273,14 +281,14 @@ namespace Dashboard
                 var FilesInCurrentDirectory = new DirectoryInfo(SourcePath);
                 FileInfo[] FilesInDirectory = FilesInCurrentDirectory.GetFiles();
 
-                foreach (var file in FilesInDirectory)
+                foreach (var CurrentFile in FilesInDirectory)
                 {
-                    Data = new byte[PartSize];
+                    Data = new byte[partSize];
                     try
                     {
-                        if (file.Length > 117)
+                        if (CurrentFile.Length > 117)
                         {
-                            await Task.Run(() => Division(file, SourcePath, PartSize));
+                            await Task.Run(() => Division(CurrentFile, SourcePath, partSize));
                             var FilesInDividedDirectory = new DirectoryInfo(DividedPath_Temp);
                             FileInfo[] FilesInDivDir = FilesInDividedDirectory.GetFiles();
                             foreach (var DivFile in FilesInDivDir)
@@ -289,13 +297,13 @@ namespace Dashboard
                                 {
                                     Data = File.ReadAllBytes(DividedPath_Temp + @"\" + DivFile.Name);
                                     EncryptedData = RSA.Encrypt(Data, false);
-                                    File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, EncryptedData); 
+                                    File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, EncryptedData);
                                 });
                             }
                             await Task.Run(() =>
                             {
                                 Addition(NewDirPath, DividedPath_Temp);
-                                RtbLogs.Text += $"{file.Name} encrypted\n";
+                                RtbLogs.Text += $"{CurrentFile.Name} encrypted\n";
                                 Directory.Delete(DividedPath_Temp, true);
                             });
                         }
@@ -303,16 +311,16 @@ namespace Dashboard
                         {
                             await Task.Run(() =>
                             {
-                                Data = File.ReadAllBytes(SourcePath + @"\" + file.Name);
+                                Data = File.ReadAllBytes(SourcePath + @"\" + CurrentFile.Name);
                                 EncryptedData = RSA.Encrypt(Data, false);
-                                File.WriteAllBytes(NewDirPath + @"\" + file.Name, EncryptedData);
-                                RtbLogs.Text += $"{file.Name} encrypted\n";
+                                File.WriteAllBytes(NewDirPath + @"\" + CurrentFile.Name, EncryptedData);
+                                RtbLogs.Text += $"{CurrentFile.Name} encrypted\n";
                             });
                         }
                     }
                     catch (Exception ex)
                     {
-                        RtbLogs.Text += $"{file.Name} is not encrypted: {ex.Message}\n";
+                        RtbLogs.Text += $"{CurrentFile.Name} is not encrypted: {ex.Message}\n";
                     }
                 }
             }
@@ -351,19 +359,18 @@ namespace Dashboard
                     MessageBox.Show("Problems with RSA\n" + ex.Message);
                 }
                   
-                foreach (var file in FilesInDirectory)
+                foreach (var CurrentFile in FilesInDirectory)
                 {
                     Data = new byte[EncSize];
                     try
                     {
-                        if (file.Length > 128)
+                        if (CurrentFile.Length > 128)
                         {
-                            await Task.Run(() => Division(file, NewDirPath, EncSize));
+                            await Task.Run(() => Division(CurrentFile, NewDirPath, EncSize));
                             var FilesInDividedDirectory = new DirectoryInfo(DividedPath_Temp);
                             FileInfo[] FilesInDivDir = FilesInDividedDirectory.GetFiles();
                             foreach (var DivFile in FilesInDivDir)
                             {
-
                                 await Task.Run(() =>
                                 {
                                     Data = File.ReadAllBytes(DividedPath_Temp + @"\" + DivFile.Name);
@@ -375,7 +382,7 @@ namespace Dashboard
                             {
                                 Directory.CreateDirectory(DecNewPath);
                                 Addition(DecNewPath, DividedPath_Temp);
-                                RtbLogs.Text += $"{file.Name} decrypted\n";
+                                RtbLogs.Text += $"{CurrentFile.Name} decrypted\n";
                                 Directory.Delete(DividedPath_Temp, true);
                             });
                         }
@@ -383,17 +390,17 @@ namespace Dashboard
                         {
                             await Task.Run(() =>
                             {
-                                Data = File.ReadAllBytes(NewDirPath + @"\" + file.Name);
+                                Data = File.ReadAllBytes(NewDirPath + @"\" + CurrentFile.Name);
                                 DecryptedData = RSA.Decrypt(Data, false);
                                 Directory.CreateDirectory(DecNewPath);
-                                File.WriteAllBytes(DecNewPath + @"\" + file.Name, DecryptedData);
-                                RtbLogs.Text += $"{file.Name} decrypted\n";
+                                File.WriteAllBytes(DecNewPath + @"\" + CurrentFile.Name, DecryptedData);
+                                RtbLogs.Text += $"{CurrentFile.Name} decrypted\n";
                             });
                         }
                     }
                     catch (Exception ex)
                     {
-                        RtbLogs.Text += $"{file.Name} is not decrypted: {ex.Message}\n";
+                        RtbLogs.Text += $"{CurrentFile.Name} is not decrypted: {ex.Message}\n";
                     }
                 }
             }
