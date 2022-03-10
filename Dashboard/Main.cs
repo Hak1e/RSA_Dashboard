@@ -6,6 +6,7 @@ using System.IO;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Dashboard
 {
@@ -34,11 +35,16 @@ namespace Dashboard
         private string Publicxml = "";
         private string Privatexml = "";
         private string DividedPath_Temp = string.Empty;
-        private readonly int partSize = 112;
+        private readonly int PartSize = 112;
         private readonly int EncSize = 128;
         private string[] KeysArr = new string[2];
         private bool OperationCanceled = false;
         private string KeysName = string.Empty;
+        private int TotalDivisionCompleted;
+        private int TotalMergingCompleted;
+        private int TotalEncryptionCompleted;
+        private int TotalDecryptionCompleted;
+        private readonly int TotalAmountOfProcesses = 3; // 1) разделение файла на части; 2) шифрация / расшифровка; 3) сложение файлов в единое целое
 
         #endregion
 
@@ -77,19 +83,19 @@ namespace Dashboard
                     }
                     else
                     {
-                        var Window = MessageBox.Show("Keys with this name are already exists. Do you want to rewrite them?\n","Same names",
+                        var Window = MessageBox.Show("Keys with this name are already exists. Do you want to rewrite them?\n", "Same names",
                             MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                         if (Window == DialogResult.Yes)
                         {
                             CreateKeysInFolder();
                             GetKeysNameFromFolder();
                         }
-                        else if(Window == DialogResult.No)
+                        else if (Window == DialogResult.No)
                         {
                             RtbLogs.Text += "Using previous keys\n";
                             GetKeysNameFromFolder();
                         }
-                        else if(Window == DialogResult.Cancel)
+                        else if (Window == DialogResult.Cancel)
                         {
                             OperationCanceled = true;
                             RtbLogs.Text += "Operation canceled\n";
@@ -122,7 +128,7 @@ namespace Dashboard
             {
                 MessageBox.Show("Failed to load private key\nChoose the right key\n" + ex.Message);
                 return;
-            }            
+            }
         }
 
         #endregion
@@ -184,53 +190,56 @@ namespace Dashboard
 
         #endregion
 
-        private void Division(FileInfo DividingFile, string DirPath, int _PartSize)
+        private void DivideFile(FileInfo DividingFile, string DirPath, int _PartSize)
         {
             byte[] FullFile = File.ReadAllBytes(DirPath + @"\" + DividingFile.Name);
             int CurrentPart = 1;
             int CurrentPosition = 0;
-            int LastFileSize;
+            int LastFileSize = FullFile.Length % _PartSize;
+            int TotalNumberOfFiles = FullFile.Length / _PartSize + 1;
+
             DividedPath_Temp = NewDirPath + $@"\Divided";
             DirectoryInfo DirInfo = Directory.CreateDirectory(DividedPath_Temp);
-            DirInfo.Attributes = FileAttributes.Directory | FileAttributes.Hidden;         
+            DirInfo.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
 
             for (int CurrentSize = 0; CurrentSize < FullFile.Length; CurrentSize += _PartSize)
             {
                 byte[] PartBytes = new byte[Math.Min(_PartSize, FullFile.Length - CurrentSize)];
-                if (PartBytes.Length < _PartSize) LastFileSize = PartBytes.Length;
 
                 for (int Position = 0; Position < PartBytes.Length; Position++) // записываем часть целого файла в новый файл
                 {
                     PartBytes[Position] = FullFile[CurrentPosition++];
                 }
                 File.WriteAllBytes(DividedPath_Temp + $@"\{DividingFile.Name}_" + CurrentPart + ".part", PartBytes);
+
+                TotalDivisionCompleted = CurrentPart * 100 / (TotalNumberOfFiles * TotalAmountOfProcesses);
+                RtbProcess.Text = $"Dividing file. {TotalDivisionCompleted}% has done"; // ошибка при трассировки
                 CurrentPart++;
             }
         }
-        
-        private void Addition(string _NewDirPath, string _DividedPath)
+
+        private void MergeFile(string _NewDirPath, string _DividedPath, int TotalDecryptionOrEncryptionCompleted)
         {
             var FilesInCurrentDirectory = new DirectoryInfo(_DividedPath);
             FileInfo[] FilesInDirectory = FilesInCurrentDirectory.GetFiles();
             string StartName = string.Empty;
             long SummaryLength = 0;
             int FilesCount = FilesInDirectory.Count();
-
-            foreach (var file in FilesInDirectory)
+            foreach (var PartFile in FilesInDirectory)
             {
-                SummaryLength += file.Length;
+                SummaryLength += PartFile.Length;
             }
-            if (SummaryLength == 0)
+            if(SummaryLength == 0)
             {
                 RtbLogs.Text += "No files in directory";
                 return;
             }
 
-            foreach (var file in FilesInDirectory)
+            foreach (var CurrentFile in FilesInDirectory)
             {
-                if (file.Name.Contains("_1.part"))
+                if (CurrentFile.Name.Contains("_1.part"))
                 {
-                    StartName = file.Name.Remove(file.Name.LastIndexOf("_1.part"));
+                    StartName = CurrentFile.Name.Remove(CurrentFile.Name.LastIndexOf("_1.part"));
                     break;
                 }
             }
@@ -238,17 +247,20 @@ namespace Dashboard
             {
                 byte[] PartBytes = new byte[SummaryLength];
                 int Position = 0;
-                for (int FileNum = 1; FileNum <= FilesCount; FileNum++)
+                for (int FileNumber = 1; FileNumber <= FilesCount; FileNumber++)
                 {
-                    byte[] file = File.ReadAllBytes(_DividedPath + @"\" + $"{StartName}_" + FileNum + ".part");
-                    int FileSize = file.Length;
+                    byte[] PartFile = File.ReadAllBytes(_DividedPath + @"\" + $"{StartName}_" + FileNumber + ".part");
+                    int FileSize = PartFile.Length;
 
                     for (int PartPosition = 0; PartPosition < FileSize; PartPosition++, Position++) // записываем все байты части в массив
                     {
-                        PartBytes[Position] = file[PartPosition];
+                        PartBytes[Position] = PartFile[PartPosition];
                     }
+                    TotalMergingCompleted = FileNumber * 100 / (FilesCount * TotalAmountOfProcesses);
+                    RtbProcess.Text = $"Merging file. {TotalDivisionCompleted + TotalDecryptionOrEncryptionCompleted + TotalMergingCompleted}% has done";
                 }
                 File.WriteAllBytes(_NewDirPath + $@"\{StartName}", PartBytes);
+                RtbProcess.Text = "Merging file. 100% has done";
             }
             catch (Exception ex)
             {
@@ -280,17 +292,21 @@ namespace Dashboard
 
                 var FilesInCurrentDirectory = new DirectoryInfo(SourcePath);
                 FileInfo[] FilesInDirectory = FilesInCurrentDirectory.GetFiles();
-
+                
                 foreach (var CurrentFile in FilesInDirectory)
                 {
-                    Data = new byte[partSize];
+                    int CurrentFilePosition = 1;
+                    Data = new byte[PartSize];
                     try
                     {
                         if (CurrentFile.Length > 117)
                         {
-                            await Task.Run(() => Division(CurrentFile, SourcePath, partSize));
+                            RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] Dividing {CurrentFile}\n";
+                            await Task.Run(() => DivideFile(CurrentFile, SourcePath, PartSize));
                             var FilesInDividedDirectory = new DirectoryInfo(DividedPath_Temp);
                             FileInfo[] FilesInDivDir = FilesInDividedDirectory.GetFiles();
+                            int TotalNumberOfFiles = FilesInDivDir.Count();
+
                             foreach (var DivFile in FilesInDivDir)
                             {
                                 await Task.Run(() =>
@@ -298,13 +314,18 @@ namespace Dashboard
                                     Data = File.ReadAllBytes(DividedPath_Temp + @"\" + DivFile.Name);
                                     EncryptedData = RSA.Encrypt(Data, false);
                                     File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, EncryptedData);
+
+                                    TotalEncryptionCompleted = CurrentFilePosition * 100 / (TotalNumberOfFiles * TotalAmountOfProcesses);
+                                    RtbProcess.Text = $"Encrypting. {TotalDivisionCompleted + TotalEncryptionCompleted}% has done";
+                                    CurrentFilePosition++;
                                 });
                             }
                             await Task.Run(() =>
                             {
-                                Addition(NewDirPath, DividedPath_Temp);
-                                RtbLogs.Text += $"{CurrentFile.Name} encrypted\n";
+                                MergeFile(NewDirPath, DividedPath_Temp, TotalEncryptionCompleted);
+                                RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] {CurrentFile.Name} encrypted\n";
                                 Directory.Delete(DividedPath_Temp, true);
+                                RtbProcess.Text = "Done!";
                             });
                         }
                         else
@@ -314,7 +335,7 @@ namespace Dashboard
                                 Data = File.ReadAllBytes(SourcePath + @"\" + CurrentFile.Name);
                                 EncryptedData = RSA.Encrypt(Data, false);
                                 File.WriteAllBytes(NewDirPath + @"\" + CurrentFile.Name, EncryptedData);
-                                RtbLogs.Text += $"{CurrentFile.Name} encrypted\n";
+                                RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] {CurrentFile.Name} encrypted\n";
                             });
                         }
                     }
@@ -333,7 +354,7 @@ namespace Dashboard
 
         private async void BtDecrypt_Click(object sender, EventArgs e)
         {
-            if (ChbNewDir.Checked == true) 
+            if (ChbNewDir.Checked == true)
             {
                 LoadKey();
                 if (Privatexml.Length == 0)
@@ -358,7 +379,7 @@ namespace Dashboard
                 {
                     MessageBox.Show("Problems with RSA\n" + ex.Message);
                 }
-                  
+                int CurrentFilePosition = 1;
                 foreach (var CurrentFile in FilesInDirectory)
                 {
                     Data = new byte[EncSize];
@@ -366,9 +387,12 @@ namespace Dashboard
                     {
                         if (CurrentFile.Length > 128)
                         {
-                            await Task.Run(() => Division(CurrentFile, NewDirPath, EncSize));
+                            RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] Dividing {CurrentFile}\n";
+                            await Task.Run(() => DivideFile(CurrentFile, NewDirPath, EncSize));
                             var FilesInDividedDirectory = new DirectoryInfo(DividedPath_Temp);
                             FileInfo[] FilesInDivDir = FilesInDividedDirectory.GetFiles();
+                            int TotalNumberOfFiles = FilesInDivDir.Count();
+
                             foreach (var DivFile in FilesInDivDir)
                             {
                                 await Task.Run(() =>
@@ -376,14 +400,18 @@ namespace Dashboard
                                     Data = File.ReadAllBytes(DividedPath_Temp + @"\" + DivFile.Name);
                                     DecryptedData = RSA.Decrypt(Data, false);
                                     File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, DecryptedData);
+                                    TotalDecryptionCompleted = CurrentFilePosition * 100 / (TotalNumberOfFiles * TotalAmountOfProcesses);
+                                    RtbProcess.Text = $"Decrypting. {TotalDivisionCompleted + TotalDecryptionCompleted}% has done";
+                                    CurrentFilePosition++;
                                 });
                             }
                             await Task.Run(() =>
                             {
                                 Directory.CreateDirectory(DecNewPath);
-                                Addition(DecNewPath, DividedPath_Temp);
-                                RtbLogs.Text += $"{CurrentFile.Name} decrypted\n";
+                                MergeFile(DecNewPath, DividedPath_Temp, TotalDecryptionCompleted);
+                                RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] {CurrentFile.Name} decrypted\n";
                                 Directory.Delete(DividedPath_Temp, true);
+                                RtbProcess.Text = "Done!";
                             });
                         }
                         else
@@ -394,7 +422,7 @@ namespace Dashboard
                                 DecryptedData = RSA.Decrypt(Data, false);
                                 Directory.CreateDirectory(DecNewPath);
                                 File.WriteAllBytes(DecNewPath + @"\" + CurrentFile.Name, DecryptedData);
-                                RtbLogs.Text += $"{CurrentFile.Name} decrypted\n";
+                                RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] {CurrentFile.Name} decrypted\n";
                             });
                         }
                     }
@@ -415,6 +443,7 @@ namespace Dashboard
         private void BtClearConsole_Click(object sender, EventArgs e)
         {
             RtbLogs.Clear();
+            RtbProcess.Clear();
         }
 
         private void ChbCustomKeysName_CheckedChanged(object sender, EventArgs e)
@@ -440,7 +469,7 @@ namespace Dashboard
             {
                 KeysName = TbCustomKeysName.Text;
             }
-                
+
         }
     }
 }

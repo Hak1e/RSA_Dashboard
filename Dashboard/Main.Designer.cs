@@ -47,6 +47,7 @@ namespace Dashboard
             this.ChbCustomKeysName = new System.Windows.Forms.CheckBox();
             this.LbEnterName = new System.Windows.Forms.Label();
             this.TbCustomKeysName = new System.Windows.Forms.TextBox();
+            this.RtbProcess = new System.Windows.Forms.RichTextBox();
             this.formStyleComponent1 = new Dashboard.FormStyleComponent(this.components);
             this.SuspendLayout();
             // 
@@ -89,10 +90,11 @@ namespace Dashboard
             this.RtbLogs.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.RtbLogs.Font = new System.Drawing.Font("Arial", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.RtbLogs.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(126)))), ((int)(((byte)(249)))));
-            this.RtbLogs.Location = new System.Drawing.Point(12, 12);
+            this.RtbLogs.Location = new System.Drawing.Point(12, 8);
             this.RtbLogs.Name = "RtbLogs";
             this.RtbLogs.ReadOnly = true;
-            this.RtbLogs.Size = new System.Drawing.Size(286, 200);
+            this.RtbLogs.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
+            this.RtbLogs.Size = new System.Drawing.Size(286, 170);
             this.RtbLogs.TabIndex = 7;
             this.RtbLogs.Text = "";
             // 
@@ -166,7 +168,7 @@ namespace Dashboard
             this.BtEncrypt.Font = new System.Drawing.Font("Nirmala UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.BtEncrypt.ForeColor = System.Drawing.Color.MediumPurple;
             this.BtEncrypt.Image = ((System.Drawing.Image)(resources.GetObject("BtEncrypt.Image")));
-            this.BtEncrypt.Location = new System.Drawing.Point(12, 217);
+            this.BtEncrypt.Location = new System.Drawing.Point(12, 211);
             this.BtEncrypt.Name = "BtEncrypt";
             this.BtEncrypt.Size = new System.Drawing.Size(143, 56);
             this.BtEncrypt.TabIndex = 21;
@@ -181,7 +183,7 @@ namespace Dashboard
             this.BtDecrypt.Font = new System.Drawing.Font("Nirmala UI", 9F, System.Drawing.FontStyle.Bold);
             this.BtDecrypt.ForeColor = System.Drawing.Color.MediumPurple;
             this.BtDecrypt.Image = ((System.Drawing.Image)(resources.GetObject("BtDecrypt.Image")));
-            this.BtDecrypt.Location = new System.Drawing.Point(155, 217);
+            this.BtDecrypt.Location = new System.Drawing.Point(155, 211);
             this.BtDecrypt.Name = "BtDecrypt";
             this.BtDecrypt.Size = new System.Drawing.Size(143, 56);
             this.BtDecrypt.TabIndex = 22;
@@ -194,9 +196,9 @@ namespace Dashboard
             // 
             this.BtClearConsole.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(49)))), ((int)(((byte)(51)))), ((int)(((byte)(79)))));
             this.BtClearConsole.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.BtClearConsole.Font = new System.Drawing.Font("Roboto", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.BtClearConsole.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.BtClearConsole.ForeColor = System.Drawing.Color.MediumPurple;
-            this.BtClearConsole.Location = new System.Drawing.Point(12, 279);
+            this.BtClearConsole.Location = new System.Drawing.Point(12, 273);
             this.BtClearConsole.Name = "BtClearConsole";
             this.BtClearConsole.Size = new System.Drawing.Size(286, 35);
             this.BtClearConsole.TabIndex = 24;
@@ -241,6 +243,20 @@ namespace Dashboard
             this.TbCustomKeysName.Visible = false;
             this.TbCustomKeysName.TextChanged += new System.EventHandler(this.TbCustomKeysName_TextChanged);
             // 
+            // RtbProcess
+            // 
+            this.RtbProcess.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(42)))), ((int)(((byte)(64)))));
+            this.RtbProcess.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.RtbProcess.Font = new System.Drawing.Font("Arial", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.RtbProcess.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(126)))), ((int)(((byte)(249)))));
+            this.RtbProcess.Location = new System.Drawing.Point(12, 178);
+            this.RtbProcess.Name = "RtbProcess";
+            this.RtbProcess.ReadOnly = true;
+            this.RtbProcess.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.None;
+            this.RtbProcess.Size = new System.Drawing.Size(286, 27);
+            this.RtbProcess.TabIndex = 29;
+            this.RtbProcess.Text = "";
+            // 
             // formStyleComponent1
             // 
             this.formStyleComponent1.Form = this;
@@ -252,6 +268,7 @@ namespace Dashboard
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(51)))), ((int)(((byte)(73)))));
             this.ClientSize = new System.Drawing.Size(667, 385);
+            this.Controls.Add(this.RtbProcess);
             this.Controls.Add(this.TbCustomKeysName);
             this.Controls.Add(this.LbEnterName);
             this.Controls.Add(this.ChbCustomKeysName);
@@ -272,7 +289,7 @@ namespace Dashboard
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Main";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Form1";
+            this.Text = "RSA Dashboard";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -297,6 +314,7 @@ namespace Dashboard
         private System.Windows.Forms.CheckBox ChbCustomKeysName;
         private System.Windows.Forms.Label LbEnterName;
         private System.Windows.Forms.TextBox TbCustomKeysName;
+        private System.Windows.Forms.RichTextBox RtbProcess;
     }
 }
 
