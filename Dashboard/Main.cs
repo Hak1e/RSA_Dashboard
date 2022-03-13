@@ -199,6 +199,8 @@ namespace Dashboard
             int TotalNumberOfFiles = FullFile.Length / _PartSize + 1;
 
             DividedPath_Temp = NewDirPath + $@"\Divided";
+            if(Directory.Exists(DividedPath_Temp))
+                Directory.Delete(DividedPath_Temp, true);
             DirectoryInfo DirInfo = Directory.CreateDirectory(DividedPath_Temp);
             DirInfo.Attributes = FileAttributes.Directory | FileAttributes.Hidden;
 
@@ -213,7 +215,7 @@ namespace Dashboard
                 File.WriteAllBytes(DividedPath_Temp + $@"\{DividingFile.Name}_" + CurrentPart + ".part", PartBytes);
 
                 TotalDivisionCompleted = CurrentPart * 100 / (TotalNumberOfFiles * TotalAmountOfProcesses);
-                RtbProcess.Text = $"Dividing file. {TotalDivisionCompleted}% has done"; // ошибка при трассировки
+                LbProcess.Invoke(new Action(() => LbProcess.Text = $"Dividing file. {TotalDivisionCompleted}% has done"));
                 CurrentPart++;
             }
         }
@@ -257,10 +259,11 @@ namespace Dashboard
                         PartBytes[Position] = PartFile[PartPosition];
                     }
                     TotalMergingCompleted = FileNumber * 100 / (FilesCount * TotalAmountOfProcesses);
-                    RtbProcess.Text = $"Merging file. {TotalDivisionCompleted + TotalDecryptionOrEncryptionCompleted + TotalMergingCompleted}% has done";
+                    LbProcess.Invoke(new Action(() => 
+                    LbProcess.Text = $"Merging file. {TotalDivisionCompleted + TotalDecryptionOrEncryptionCompleted + TotalMergingCompleted}% has done"));
                 }
                 File.WriteAllBytes(_NewDirPath + $@"\{StartName}", PartBytes);
-                RtbProcess.Text = "Merging file. 100% has done";
+                LbProcess.Invoke(new Action(() => LbProcess.Text = "Merging file. 100% has done"));
             }
             catch (Exception ex)
             {
@@ -316,7 +319,8 @@ namespace Dashboard
                                     File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, EncryptedData);
 
                                     TotalEncryptionCompleted = CurrentFilePosition * 100 / (TotalNumberOfFiles * TotalAmountOfProcesses);
-                                    RtbProcess.Text = $"Encrypting. {TotalDivisionCompleted + TotalEncryptionCompleted}% has done";
+                                    LbProcess.Invoke(new Action(() => 
+                                    LbProcess.Text = $"Encrypting. {TotalDivisionCompleted + TotalEncryptionCompleted}% has done"));
                                     CurrentFilePosition++;
                                 });
                             }
@@ -325,7 +329,7 @@ namespace Dashboard
                                 MergeFile(NewDirPath, DividedPath_Temp, TotalEncryptionCompleted);
                                 RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] {CurrentFile.Name} encrypted\n";
                                 Directory.Delete(DividedPath_Temp, true);
-                                RtbProcess.Text = "Done!";
+                                LbProcess.Invoke(new Action(() => LbProcess.Text = "Done!"));
                             });
                         }
                         else
@@ -401,7 +405,8 @@ namespace Dashboard
                                     DecryptedData = RSA.Decrypt(Data, false);
                                     File.WriteAllBytes(DividedPath_Temp + @"\" + DivFile.Name, DecryptedData);
                                     TotalDecryptionCompleted = CurrentFilePosition * 100 / (TotalNumberOfFiles * TotalAmountOfProcesses);
-                                    RtbProcess.Text = $"Decrypting. {TotalDivisionCompleted + TotalDecryptionCompleted}% has done";
+                                    LbProcess.Invoke(new Action(() => 
+                                    LbProcess.Text = $"Decrypting. {TotalDivisionCompleted + TotalDecryptionCompleted}% has done"));
                                     CurrentFilePosition++;
                                 });
                             }
@@ -411,7 +416,7 @@ namespace Dashboard
                                 MergeFile(DecNewPath, DividedPath_Temp, TotalDecryptionCompleted);
                                 RtbLogs.Text += $"[{DateTime.Now:HH:mm:ss}] {CurrentFile.Name} decrypted\n";
                                 Directory.Delete(DividedPath_Temp, true);
-                                RtbProcess.Text = "Done!";
+                                LbProcess.Invoke(new Action(() => LbProcess.Text = "Done!"));
                             });
                         }
                         else
@@ -443,7 +448,7 @@ namespace Dashboard
         private void BtClearConsole_Click(object sender, EventArgs e)
         {
             RtbLogs.Clear();
-            RtbProcess.Clear();
+            //label2.Clear();
         }
 
         private void ChbCustomKeysName_CheckedChanged(object sender, EventArgs e)

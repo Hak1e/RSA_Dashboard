@@ -47,8 +47,9 @@ namespace Dashboard
             this.ChbCustomKeysName = new System.Windows.Forms.CheckBox();
             this.LbEnterName = new System.Windows.Forms.Label();
             this.TbCustomKeysName = new System.Windows.Forms.TextBox();
-            this.RtbProcess = new System.Windows.Forms.RichTextBox();
+            this.LbProcess = new System.Windows.Forms.Label();
             this.formStyleComponent1 = new Dashboard.FormStyleComponent(this.components);
+            this.RtbProcess = new System.Windows.Forms.RichTextBox();
             this.SuspendLayout();
             // 
             // TbSourceDir
@@ -243,6 +244,23 @@ namespace Dashboard
             this.TbCustomKeysName.Visible = false;
             this.TbCustomKeysName.TextChanged += new System.EventHandler(this.TbCustomKeysName_TextChanged);
             // 
+            // LbProcess
+            // 
+            this.LbProcess.AutoSize = true;
+            this.LbProcess.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(42)))), ((int)(((byte)(64)))));
+            this.LbProcess.Font = new System.Drawing.Font("Arial", 11.25F, System.Drawing.FontStyle.Bold);
+            this.LbProcess.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(126)))), ((int)(((byte)(249)))));
+            this.LbProcess.Location = new System.Drawing.Point(12, 178);
+            this.LbProcess.Name = "LbProcess";
+            this.LbProcess.Size = new System.Drawing.Size(209, 18);
+            this.LbProcess.TabIndex = 30;
+            this.LbProcess.Text = "Progress will be shown here";
+            // 
+            // formStyleComponent1
+            // 
+            this.formStyleComponent1.Form = this;
+            this.formStyleComponent1.FormStyle = Dashboard.FormStyleComponent.FStyle.None;
+            // 
             // RtbProcess
             // 
             this.RtbProcess.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(42)))), ((int)(((byte)(64)))));
@@ -257,17 +275,13 @@ namespace Dashboard
             this.RtbProcess.TabIndex = 29;
             this.RtbProcess.Text = "";
             // 
-            // formStyleComponent1
-            // 
-            this.formStyleComponent1.Form = this;
-            this.formStyleComponent1.FormStyle = Dashboard.FormStyleComponent.FStyle.None;
-            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(51)))), ((int)(((byte)(73)))));
             this.ClientSize = new System.Drawing.Size(667, 385);
+            this.Controls.Add(this.LbProcess);
             this.Controls.Add(this.RtbProcess);
             this.Controls.Add(this.TbCustomKeysName);
             this.Controls.Add(this.LbEnterName);
@@ -314,6 +328,7 @@ namespace Dashboard
         private System.Windows.Forms.CheckBox ChbCustomKeysName;
         private System.Windows.Forms.Label LbEnterName;
         private System.Windows.Forms.TextBox TbCustomKeysName;
+        private System.Windows.Forms.Label LbProcess;
         private System.Windows.Forms.RichTextBox RtbProcess;
     }
 }
