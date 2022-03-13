@@ -260,7 +260,8 @@ namespace Dashboard
                     }
                     TotalMergingCompleted = FileNumber * 100 / (FilesCount * TotalAmountOfProcesses);
                     LbProcess.Invoke(new Action(() => 
-                    LbProcess.Text = $"Merging file. {TotalDivisionCompleted + TotalDecryptionOrEncryptionCompleted + TotalMergingCompleted}% has done"));
+                    LbProcess.Text = $"Merging file. " +
+                    $"{TotalDivisionCompleted + TotalDecryptionOrEncryptionCompleted + TotalMergingCompleted}% has done"));
                 }
                 File.WriteAllBytes(_NewDirPath + $@"\{StartName}", PartBytes);
                 LbProcess.Invoke(new Action(() => LbProcess.Text = "Merging file. 100% has done"));
@@ -448,7 +449,7 @@ namespace Dashboard
         private void BtClearConsole_Click(object sender, EventArgs e)
         {
             RtbLogs.Clear();
-            //label2.Clear();
+            LbProcess.Text = string.Empty;
         }
 
         private void ChbCustomKeysName_CheckedChanged(object sender, EventArgs e)
