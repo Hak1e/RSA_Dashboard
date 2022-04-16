@@ -1,7 +1,0 @@
-[1.0.0] - Working program
-[1.1.0] - Fixed program freezing during operation
-[1.1.1] - Minor code changes
-[1.1.2] - Fixed issues after patch [1.1.1] changes, minor code changes
-[1.1.3] - Added progress bar
-[1.1.4] - Minor bug fixes
-
